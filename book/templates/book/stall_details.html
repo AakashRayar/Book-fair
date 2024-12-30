@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stall Details</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* Reset styles to counteract Bootstrap interference */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .container {
+      --bs-gutter-x: 0;
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    #layout_image {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .stall {
+      position: absolute;
+      text-align: center;
+      font-size: 12px;
+      color: white;
+      /* background-color: rgba(0, 255, 98, 0.7); */
+      cursor: pointer;
+      padding: 5px;
+      pointer-events: auto;
+      border-radius: 3px;
+    }
+
+    /* Modal-specific fixes */
+    .modal-backdrop {
+      z-index: 10 !important;
+    }
+
+    .modal-content {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Stall Layout</h1>
+  <div class="container">
+    <img id="layout_image" src="{{ image_path }}" alt="Stall Layout">
+
+    {% for stall in stalls %}
+    <div class="stall" data-stall-id="{{ stall.id }}" data-x="{{ stall.x_coordinate }}"
+      data-y="{{ stall.y_coordinate }}" data-width="{{ stall.width }}" data-height="{{ stall.height }}">
+      <!-- {{ stall.stall_number }} -->
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Bootstrap Modal -->
+  <div class="modal fade" id="stallModal" tabindex="-1" aria-labelledby="stallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="stallModalLabel">Stall Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="modalContent">
+            <!-- Stall details will be dynamically inserted here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const image = document.getElementById('layout_image');
+      const modal = new bootstrap.Modal(document.getElementById('stallModal'));
+      const modalContent = document.getElementById('modalContent');
+      let stalls = document.querySelectorAll('.stall');
+
+      image.onload = function () {
+        adjustStallPositions();
+        attachClickListeners();
+      };
+
+      function attachClickListeners() {
+        stalls = document.querySelectorAll('.stall');
+        stalls.forEach(stall => {
+          stall.addEventListener('click', function (event) {
+            showStallDetails(event, this.dataset.stallId);
+          });
+        });
+      }
+
+      function adjustStallPositions() {
+        const imageWidth = image.naturalWidth;
+        const imageHeight = image.naturalHeight;
+        const containerWidth = image.clientWidth;
+        const containerHeight = image.clientHeight;
+
+        const scaleX = containerWidth / imageWidth;
+        const scaleY = containerHeight / imageHeight;
+
+        stalls.forEach(stall => {
+          const x = parseFloat(stall.dataset.x);
+          const y = parseFloat(stall.dataset.y);
+          const width = parseFloat(stall.dataset.width);
+          const height = parseFloat(stall.dataset.height);
+
+          const scaledX = x * scaleX;
+          const scaledY = y * scaleY;
+          const scaledWidth = width * scaleX;
+          const scaledHeight = height * scaleY;
+
+          stall.style.left = `${scaledX}px`;
+          stall.style.top = `${scaledY}px`;
+          stall.style.width = `${scaledWidth}px`;
+          stall.style.height = `${scaledHeight}px`;
+        });
+      }
+
+      function showStallDetails(event, stallId) {
+        fetch(`/get-stall-details/${stallId}/`)
+          .then(response => response.json())
+          .then(data => {
+            modalContent.innerHTML = `
+              <p><strong>Stall Number:</strong> ${data.stall_number}</p>
+              <p><strong>Description:</strong> ${data.description}</p>
+              <p><strong>Coordinates:</strong> X: ${data.coordinates.x}, Y: ${data.coordinates.y}</p>
+              <p><strong>Dimensions:</strong> ${data.coordinates.width}x${data.coordinates.height}</p>
+              <p><strong>Events:</strong> ${data.events ? `<div>${data.events}</div>` : "<div>No events available</div>"
+              }</p>
+            `;
+            modal.show();
+          })
+          .catch(error => console.error('Error fetching stall details:', error));
+      }
+
+      adjustStallPositions();
+      attachClickListeners();
+      window.addEventListener('resize', adjustStallPositions);
+    });
+  </script>
+</body>
+
+</html>

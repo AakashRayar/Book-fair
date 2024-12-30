@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shortest Path</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 20px;
+    }
+
+    #pathImage {
+      width: 100%;
+      height: auto;
+      display: none;
+      /* Hide the image initially */
+      border: 2px solid #ccc;
+      margin: 20px 0;
+    }
+
+    .image-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    #loadingOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: none;
+      /* Hide loader initially */
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h1>Find Stalls</h1>
+    <form id="shortestPathForm" class="mb-4">
+      <div class="mb-3">
+        <label for="start_stall" class="form-label">From : </label>
+        <input type="text" class="form-control" placeholder="Your location" id="start_stall" name="start_stall"
+          required>
+      </div>
+      <div class="mb-3">
+        <label for="end_stall" class="form-label">To : </label>
+        <input type="text" class="form-control" placeholder="Choose destination" id="end_stall" name="end_stall"
+          required>
+      </div>
+      <button type="submit" class="btn btn-primary">Find Path</button>
+    </form>
+    <div id="result" class="text-center">
+      <!-- Image container with loader overlay -->
+      <div class="image-container">
+        <div id="loadingOverlay">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <img id="pathImage" src="" alt="Shortest Path" class="img-fluid" loading="lazy">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Track if this is the first submission
+    let isFirstLoad = true;
+
+    document.getElementById('shortestPathForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const pathImage = document.getElementById('pathImage');
+
+      // If it's the first load, show the loader normally and hide the image
+      if (isFirstLoad) {
+        loadingOverlay.style.display = 'flex';
+        pathImage.style.display = 'none';
+        isFirstLoad = false;
+      } else {
+        // For subsequent loads, show the loader over the image
+        loadingOverlay.style.display = 'flex';
+        pathImage.style.display = 'block';
+      }
+
+      fetch('/shortest-path/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.image_path) {
+            // Update the image source and display the image
+            pathImage.src = data.image_path + '?t=' + new Date().getTime(); // Cache-busting
+            pathImage.style.display = 'block';
+          } else {
+            alert('Error: ' + data.error);
+          }
+        })
+        .catch(error => console.error('Error:', error))
+        .finally(() => {
+          // Hide the loader after the image loads
+          loadingOverlay.style.display = 'none';
+        });
+    });
+  </script>
+</body>
+
+</html>

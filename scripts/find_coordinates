@@ -1,0 +1,202 @@
+# import cv2
+# import numpy as np
+# from openpyxl import Workbook
+# import os
+
+# # Load the image
+# image_path = os.path.join(os.path.dirname(__file__), '../book/static/book/images/cbf-layout1.jpg')  # Update with your output image path
+# image = cv2.imread(image_path)
+
+# if image is None:
+#     print("Error: Image not found.")
+#     exit()
+
+# # Convert to grayscale
+# gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# # Apply thresholding to enhance box detection
+# _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+
+# # Apply dilation to close gaps in boxes
+# kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+# dilated = cv2.dilate(thresh, kernel, iterations=2)
+
+# # Apply edge detection
+# edges = cv2.Canny(dilated, 50, 150)
+
+# # Find contours in the edge-detected image
+# contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# # Filter contours to get bounding rectangles
+# filtered_contours = [
+#     cv2.boundingRect(contour) for contour in contours
+#     if 140 <= cv2.boundingRect(contour)[2] <= 500 and 30 <= cv2.boundingRect(contour)[3] <= 700
+# ]
+
+# # Sort contours by their Y-coordinate only (top to bottom)
+# sorted_contours = sorted(filtered_contours, key=lambda x: x[1])  # Sort by Y (ascending)
+
+# # Initialize counter for boxes
+# box_count = 0
+
+# # Define a list of 4 colors (in BGR format) to alternate between
+# colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]  # Blue, Green, Red, Yellow
+
+# # Create an Excel workbook and add a sheet
+# wb = Workbook()
+# ws = wb.active
+# ws.title = "Box Information"
+# ws.append(["Box Index", "X", "Y", "Width", "Height"])  # Header row
+
+# # Iterate over sorted contours
+# for x, y, w, h in sorted_contours:
+#     box_count += 1
+#     # Print the size of the box
+#     print(f"Box {box_count}: X={x}, Y={y}, Width={w}, Height={h}")
+    
+#     # Select a color from the list in a cyclic manner
+#     color = colors[box_count % len(colors)]
+    
+#     # Draw the detected box with the selected color
+#     cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+    
+#     # Save box information to Excel
+#     ws.append([box_count, x, y, w, h])
+
+# # Save the Excel file
+# excel_path = r"D:\Project-5\bookstall\book\book_stall.xlsx"
+# wb.save(excel_path)
+
+# # Save the output image
+# output_path = os.path.join(os.path.dirname(__file__), '../book/static/book/images/cbf-layout1_filled.jpg')  # Update with your desired output path
+# cv2.imwrite(output_path, image)
+
+# # Show the final image with boxes
+# cv2.imshow("Filtered and Filled Boxes", image)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+# # Print the number of detected boxes
+# print(f"Number of boxes detected: {box_count}")
+# print(f"Image with detected boxes saved to {output_path}")
+# print(f"Box information saved to {excel_path}")
+
+
+
+
+
+
+
+
+
+
+
+import cv2
+import numpy as np
+from openpyxl import Workbook
+import os
+
+# Load the image
+image_path = os.path.join(os.path.dirname(__file__), '../book/static/book/images/cbf-layout1.jpg')  # Update with your output image path
+image = cv2.imread(image_path)
+if image is None:
+    print("Error: Image not found.")
+    exit()
+
+# Convert to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Apply thresholding to enhance box detection
+_, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+
+# Apply dilation to close gaps in boxes
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+dilated = cv2.dilate(thresh, kernel, iterations=2)
+
+# Apply edge detection
+edges = cv2.Canny(dilated, 50, 150)
+
+# Find contours in the edge-detected image
+contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Initialize counter for boxes
+box_count = 0
+
+# Define a list of 4 colors (in BGR format) to alternate between
+colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]  # Blue, Green, Red, Yellow
+
+# Create an Excel workbook and add a sheet
+wb = Workbook()
+ws = wb.active
+ws.title = "Box Information"
+ws.append(["Box Index", "X", "Y", "Width", "Height"])  # Header row
+
+# Collect box information
+boxes = []
+
+# Iterate over contours
+for contour in contours:
+    # Get the bounding box for each contour
+    x, y, w, h = cv2.boundingRect(contour)
+    
+    # Filter for contours with reasonable dimensions
+    if 140 <= w <= 500 and 30 <= h <= 600:  # Adjust height and width limits as needed
+        boxes.append((x, y, w, h))
+
+# Sort boxes by X-coordinate first
+boxes = sorted(boxes, key=lambda b: b[0])  # Sort by x-coordinate
+
+# Group boxes into columns
+columns = []
+column_threshold = 50  # Adjust this value based on column spacing
+
+for box in boxes:
+    x, y, w, h = box
+    added_to_column = False
+    for column in columns:
+        # If the box's x-coordinate is close to the column's x-coordinate, add it to that column
+        if abs(column[0][0] - x) < column_threshold:
+            column.append(box)
+            added_to_column = True
+            break
+    if not added_to_column:
+        # Create a new column if no suitable column was found
+        columns.append([box])
+
+# Sort each column by Y-coordinate (top to bottom)
+for column in columns:
+    column.sort(key=lambda b: b[1])
+
+# Process the boxes column by column
+for column in columns:
+    for x, y, w, h in column:
+        box_count += 1
+        # Print the size of the box
+        print(f"Box {box_count}: X={x}, Y={y}, Width={w}, Height={h}")
+        
+        # Select a color from the list in a cyclic manner
+        color = colors[box_count % len(colors)]
+        
+        # Draw the detected box with the selected color
+        cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+        
+        # Save box information to Excel
+        ws.append([box_count, x, y, w, h])
+
+# Save the Excel file
+excel_path = r"D:\Project-5\bookstall\book\book_stall.xlsx"
+wb.save(excel_path)
+
+# Save the output image
+output_path = os.path.join(os.path.dirname(__file__), '../book/static/book/images/cbf-layout1_filled.jpg')  # Update with your desired output path
+cv2.imwrite(output_path, image)
+
+# Show the final image with boxes
+cv2.imshow("Column-wise Sorted Boxes", image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# Print the number of detected boxes
+print(f"Number of boxes detected: {box_count}")
+print(f"Image with detected boxes saved to {output_path}")
+print(f"Box information saved to {excel_path}")
