@@ -121,6 +121,10 @@ def draw_stalls_on_image(layout_image_path, stalls_queryset):
 
 
 def plot_path(graph, stalls, blank_spaces, start_stall, end_stall, path, layout_image_path, output_image_path):
+    import matplotlib.pyplot as plt
+    import io
+    from PIL import Image
+
     stalls_queryset = Click.objects.all()
     img = draw_stalls_on_image(layout_image_path, stalls_queryset)
     plt.figure(figsize=(16, 12), dpi=150)
@@ -130,12 +134,33 @@ def plot_path(graph, stalls, blank_spaces, start_stall, end_stall, path, layout_
         path_x, path_y = zip(*path)
         plt.plot(path_x, path_y, color="blue", linewidth=3)
 
-    start_row = stalls.loc[stalls['Name (stall_number)'] == start_stall]
-    end_row = stalls.loc[stalls['Name (stall_number)'] == end_stall]
-    plt.scatter(start_row['center_x'], start_row['center_y'], color="green", s=50)
-    plt.scatter(end_row['center_x'], end_row['center_y'], color="orange", s=50)
+        # Get coordinates of the start and end stalls
+        start_row = stalls.loc[stalls['Name (stall_number)'] == start_stall]
+        end_row = stalls.loc[stalls['Name (stall_number)'] == end_stall]
+        start_x, start_y = start_row['center_x'].values[0], start_row['center_y'].values[0]
+        end_x, end_y = end_row['center_x'].values[0], end_row['center_y'].values[0]
 
-    plt.legend(fontsize=12)
+        # Calculate adjusted positions for arrows to touch the blue line and stall box
+        arrow_offset = 5  # Offset from the stall box to avoid overlapping numbers
+        start_arrow_x = path_x[0] + (start_x - path_x[0]) * 0.8
+        start_arrow_y = path_y[0] + (start_y - path_y[0]) * 0.8
+        end_arrow_x = path_x[-1] + (end_x - path_x[-1]) * 0.8
+        end_arrow_y = path_y[-1] + (end_y - path_y[-1]) * 0.8
+
+        # Draw arrows
+        plt.annotate(
+            "",
+            xy=(start_arrow_x, start_arrow_y),  # Arrowhead near the stall box
+            xytext=(path_x[0], path_y[0]),  # Arrow tail on the blue line
+            arrowprops=dict(arrowstyle="->", color="blue", lw=2),
+        )
+        plt.annotate(
+            "",
+            xy=(end_arrow_x, end_arrow_y),  # Arrowhead near the stall box
+            xytext=(path_x[-1], path_y[-1]),  # Arrow tail on the blue line
+            arrowprops=dict(arrowstyle="->", color="blue", lw=2),
+        )
+
     plt.axis("off")
 
     # Save figure to an in-memory buffer as PNG
@@ -149,6 +174,7 @@ def plot_path(graph, stalls, blank_spaces, start_stall, end_stall, path, layout_
     image = image.convert("RGB")  # Ensure it's in RGB mode for JPEG
     image.save(output_image_path, format="JPEG", quality=70)  # Save optimized JPEG
     buf.close()
+
 
 
 

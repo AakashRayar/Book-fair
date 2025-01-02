@@ -66,6 +66,11 @@
 </head>
 
 <body>
+  {% extends 'book/base.html' %}
+
+  {% block title %}Stalls - Book Fair{% endblock %}
+
+  {% block content %}
   <h1>Stall Layout</h1>
   <div class="container">
     <img id="layout_image" src="{{ image_path }}" alt="Stall Layout">
@@ -151,15 +156,29 @@
         });
       }
 
+      // function showStallDetails(event, stallId) {
+      //   fetch(`/get-stall-details/${stallId}/`)
+      //     .then(response => response.json())
+      //     .then(data => {
+      //       modalContent.innerHTML = `
+      //         <p><strong>Stall Number:</strong> ${data.stall_number}</p>
+      //         <p><strong>Description:</strong> ${data.description}</p>
+      //         <p><strong>Coordinates:</strong> X: ${data.coordinates.x}, Y: ${data.coordinates.y}</p>
+      //         <p><strong>Dimensions:</strong> ${data.coordinates.width}x${data.coordinates.height}</p>
+      //         <p><strong>Events:</strong> ${data.events ? `<div>${data.events}</div>` : "<div>No events available</div>"
+      //         }</p>
+      //       `;
+      //       modal.show();
+      //     })
+      //     .catch(error => console.error('Error fetching stall details:', error));
+      // }
+
       function showStallDetails(event, stallId) {
         fetch(`/get-stall-details/${stallId}/`)
           .then(response => response.json())
           .then(data => {
             modalContent.innerHTML = `
               <p><strong>Stall Number:</strong> ${data.stall_number}</p>
-              <p><strong>Description:</strong> ${data.description}</p>
-              <p><strong>Coordinates:</strong> X: ${data.coordinates.x}, Y: ${data.coordinates.y}</p>
-              <p><strong>Dimensions:</strong> ${data.coordinates.width}x${data.coordinates.height}</p>
               <p><strong>Events:</strong> ${data.events ? `<div>${data.events}</div>` : "<div>No events available</div>"
               }</p>
             `;
@@ -168,11 +187,13 @@
           .catch(error => console.error('Error fetching stall details:', error));
       }
 
+
       adjustStallPositions();
       attachClickListeners();
       window.addEventListener('resize', adjustStallPositions);
     });
   </script>
+  {% endblock %}
 </body>
 
 </html>

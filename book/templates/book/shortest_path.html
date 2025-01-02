@@ -56,6 +56,11 @@
 </head>
 
 <body>
+  {% extends 'book/base.html' %}
+
+  {% block title %}Location - Book Fair{% endblock %}
+
+  {% block content %}
   <div class="container mt-5">
     <h1>Find Stalls</h1>
     <form id="shortestPathForm" class="mb-4">
@@ -130,6 +135,7 @@
         });
     });
   </script>
+  {% endblock %}
 </body>
 
 </html>
