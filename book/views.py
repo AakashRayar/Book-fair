@@ -13,8 +13,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import UserRegistrationSerializer
+from .serializers import UserRegistrationSerializer, LoginSerializer
 from rest_framework.permissions import IsAuthenticated
+from .serializers import UserRegistrationSerializer
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 def stall_details(request):
@@ -74,10 +78,11 @@ def shortest_path_view(request):
         end_stall = request.POST.get("end_stall").strip()
 
         # File paths for data and layout image
-        stalls_path = r'D:\Book-fair\bookstall\book\box_information_with_ocr.xlsx'
-        blank_spaces_path = r"D:\Book-fair\bookstall\book\box_5_information.xlsx"
-        layout_image_path = r"D:\Book-fair\bookstall\book\static\book\images\cbf2024.jpg"
-        output_image_path = r"D:\Book-fair\bookstall\book\static\book\images\shortest_path_result1.jpg"
+        stalls_path = r' M:\gitbook\Book-fair\book\box_information_with_ocr.xlsx'
+       
+        blank_spaces_path = r"M:\gitbook\Book-fair\book\box_5_information.xlsx"
+        layout_image_path = r"M:\gitbook\Book-fair\book\static\book\images\cbf2024.jpg"
+        output_image_path = r"M:\gitbook\Book-fair\book\static\book\images\shortest_path_result1.jpg"
 
         # Load data
         stalls, blank_spaces = load_data(stalls_path, blank_spaces_path)
@@ -109,29 +114,56 @@ def shortest_path_view(request):
         return JsonResponse({"image_path": "/static/book/images/shortest_path_result1.jpg"})
     return render(request, "book/shortest_path.html")
 
-
 class UserRegistrationView(APIView):
-    permission_classes = [AllowAny]  # Override default permissions
+    permission_classes = [AllowAny]  # No authentication required for registration
 
     def post(self, request, *args, **kwargs):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
+            user = serializer.save()  # Save the user
+            return Response({
+                "message": "User registered successfully!",
+                "user": {"username": user.username, "email": user.email}
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
+
 class LoginView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        # Your login logic
-        return Response({"key": "generated-auth-token"}, status=status.HTTP_200_OK)
-    
-class RegistrationView(APIView):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            # Issue tokens if credentials are valid
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'message': 'Login successful',
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class LogoutView(APIView):
     def post(self, request):
-        # Your registration logic
-        return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
-    
-class ProtectedView(APIView):
-    def get(self, request):
-        return Response({'message': 'You have accessed a protected endpoint.'})
+        try:
+            # Get the refresh token from the request
+            refresh_token = request.data.get('refresh_token')
+
+            if not refresh_token:
+                return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Decode and blacklist the refresh token
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # This method marks the token as invalid
+
+            return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 

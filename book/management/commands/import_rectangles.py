@@ -4,7 +4,7 @@ from book.models import Rectangle
 
 class Command(BaseCommand):
     help = 'Import rectangles from an Excel file'
-    file_path = r"D:\Book-fair\bookstall\book\box_5_information.xlsx"
+    file_path = r"M:\gitbook\Book-fair\book\box_5_information.xlsx"
 
 
     def add_arguments(self, parser):
